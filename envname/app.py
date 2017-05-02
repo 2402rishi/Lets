@@ -53,7 +53,7 @@ GRANT_TYPE = 'client_credentials'
 # Defaults for our simple example.
 DEFAULT_TERM = 'dinner'
 DEFAULT_LOCATION = 'San Francisco, CA'
-SEARCH_LIMIT = 7
+SEARCH_LIMIT = 2
 
 
 # Flask app should start in global layout
