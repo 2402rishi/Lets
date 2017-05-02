@@ -142,10 +142,7 @@ def request_from_yelp(host, path, bearer_token, url_params=None):
     headers = {
         'Authorization': 'Bearer %s' % bearer_token,
     }
-
-
     response = requests.request('GET', url, headers=headers, params=url_params)
-
     return response.json()
 
 
@@ -157,13 +154,13 @@ def search(bearer_token, term, location):
     Returns:
         dict: The JSON response from the request.
     """
-
     url_params = {
         'term': term.replace(' ', '+'),
         'location': location.replace(' ', '+'),
         'limit': SEARCH_LIMIT
     }
-    return request_from_yelp(API_HOST, SEARCH_PATH, bearer_token, url_params=url_params)
+    lalal=request_from_yelp(API_HOST, SEARCH_PATH, bearer_token, url_params=url_params)
+    return lalal
 
 
 def get_business(bearer_token, business_id):
@@ -174,7 +171,6 @@ def get_business(bearer_token, business_id):
         dict: The JSON response from the request.
     """
     business_path = BUSINESS_PATH + business_id
-
     return request_from_yelp(API_HOST, business_path, bearer_token)
 
 
@@ -185,25 +181,21 @@ def query_api(term, location):
         location (str): The location of the business to query.
     """
     bearer_token = obtain_bearer_token(API_HOST, TOKEN_PATH)
-
     response = search(bearer_token, term, location)
-
     businesses = response.get('businesses')
-
     if not businesses:
         print(u'No businesses for {0} in {1} found.'.format(term, location))
         return
     final_result=''
     for i in businesses:
         business_id = i['id']
+        # print (business_id)
         # print(u'{0} businesses found, querying business info ' \
         # 'for the top result "{1}" ...'.format(
         #     len(businesses), business_id))
         response =get_business(bearer_token, business_id)
-        
-
         # print(u'Result for business "{0}" found:'.format(business_id))
-    return ','.join([str(x['id']) for x in businesses])
+    return ','.join([str(x['name']) for x in businesses])
 
 
 
