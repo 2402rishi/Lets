@@ -1,25 +1,33 @@
 #!/usr/bin/env python
 from __future__ import print_function
+from elasticsearch.client import IndicesClient
+from elasticsearch import Elasticsearch,RequestsHttpConnection
 from future.standard_library import install_aliases
 install_aliases()
 from flask import Flask
 from urllib.parse import urlparse, urlencode
 from urllib.request import urlopen, Request
 from urllib.error import HTTPError
-
 import json
 import os
 from flask import request
 from flask import make_response
-
-
 import argparse
-import json
 import pprint
 import requests
 import sys
 import urllib
 
+host = 'search-foodbot-mdkkcuxnaa5sp446if67scolgm.us-east-1.es.amazonaws.com'
+port = 443
+ES_CLIENT = Elasticsearch(
+        hosts=[{'host': host,'port':port}],
+        use_ssl=True,
+        verify_certs=True,
+        connection_class=RequestsHttpConnection
+        )
+indices_client = IndicesClient(client=ES_CLIENT)
+i=1
 
 # This client code can run on Python 2.x or 3.x.  Your imports can be
 # simpler if you only need one of those.
@@ -64,12 +72,23 @@ def hello():
     return result
 @app.route('/webhook', methods=['POST','GET'])
 def webhook():
-    req = request.get_json(silent=True, force=True)
-    res = processRequest(req)
-    res = json.dumps(res, indent=4)
+    # req = request.get_json(silent=True, force=True)
+    # res = processRequest(req)
+    es = Elasticsearch(hosts=[{'host': host,'port':port}],use_ssl=True,verify_certs=True,connection_class=RequestsHttpConnection)
+    res = es.search(size=5000,index="fb", body={"query": {"match":{"type":"japanese"}}})
+    # res = es.get(index="fb")
+    listOfDicts = []
+    for idx in range(len(res['hits']['hits'])):
+        sourceValue = res['hits']['hits'][idx]['_source']
+        listOfDicts.append(sourceValue['name'])
+    # print (listOfDicts)
+    res=makeWebhookResult(listOfDicts)
+    res=json.dumps(res,indent=4)
     r = make_response(res)
     r.headers['Content-Type'] = 'application/json'
     return r
+    # return json.dumps(listOfDicts)
+    
 
 
 def processRequest(req):
@@ -82,21 +101,45 @@ def processRequest(req):
                 yql_url = baseurl + urlencode({'q': yql_query}) + "&format=json"
                 result = urlopen(yql_url).read()
                 data = json.loads(result)"""
+   	#req.get("result").get("action") == "rating":
     res=query_api(req.get("result").get("parameters").get("Cuisine"),"NY")
-    z = makeWebhookResult(res)
+    z = makeWebhookResult1(res)
     return z
+    # elif req.get("result").get("action") == "restaurants":
+    #     res=query_api(req.get("result").get("parameters").get("Cuisine"),"NY")
+    #     z = makeWebhookResult(res)
+    #     return z
 
-def makeWebhookResult(data):
-    result=data
-    if result is None:
-        return {}
-    speech = result
+def makeWebhookResult1(data):
+    
+    # if result is None:
+    #     return {}
+    n=""
+    new =""
+    for x in data:
+        n = str(x['name'])
+        new = new + n
+
+
+    speech= "Here is the list " + new
     return {
-        "speech": speech,
-        "displayText": speech,
+    "speech": speech,
+    "displayText": speech,
         # "data": data,
         # "contextOut": [],
-        "source": "Yelp"
+    "source": "Yelp"
+    }
+    
+
+
+def makeWebhookResult(data):
+    speech= "Here is the list:"+','.join(str(i) for i in data)
+    return {
+    "speech": speech,
+    "displayText": speech,
+        # "data": data,
+        # "contextOut": [],
+    "source": "Yelp"
     }
 def obtain_bearer_token(host, path):
     """Given a bearer token, send a GET request to the API.
@@ -195,8 +238,8 @@ def query_api(term, location):
         #     len(businesses), business_id))
         response =get_business(bearer_token, business_id)
         # print(u'Result for business "{0}" found:'.format(business_id))
-    return ','.join([str(x['name']) for x in businesses])
-
+    #return ','.join([str(x['name']) for x in businesses])
+    return businesses
 
 
 
