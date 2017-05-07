@@ -81,7 +81,8 @@ def webhook():
     listOfDicts = []
     for idx in range(len(res['hits']['hits'])):
         sourceValue = res['hits']['hits'][idx]['_source']
-        listOfDicts.append(sourceValue['name'])
+        text=sourceValue['name']
+        listOfDicts.append(''.join([i if ord(i) < 128 else '' for i in text]))
     # print (listOfDicts)
     res=makeWebhookResult(listOfDicts)
     res=json.dumps(res,indent=4)
