@@ -61,7 +61,7 @@ GRANT_TYPE = 'client_credentials'
 # Defaults for our simple example.
 DEFAULT_TERM = 'dinner'
 DEFAULT_LOCATION = 'San Francisco, CA'
-SEARCH_LIMIT = 4
+SEARCH_LIMIT =  4
 
 
 # Flask app should start in global layout
@@ -73,23 +73,36 @@ def hello():
 @app.route('/webhook', methods=['POST','GET'])
 def webhook():
     req = request.get_json(silent=True, force=True)
+    # ac=req.get("result").get("action")
+    
     req=req.get("result").get("parameters").get("Cuisine")
-    print (req)
+    
+
+    # print (req)
     es = Elasticsearch(hosts=[{'host': host,'port':port}],use_ssl=True,verify_certs=True,connection_class=RequestsHttpConnection)
-    res = es.search(size=5000,index="fb", body={"query": {"match":{"type":req}}})
-    # res = es.get(index="fb")
+    res = es.search(size=5,index="fb", body={"query": {"match":{"type":req}}})
     listOfDicts = []
+    listOfRating=[]
+    listOfImage=[]
     for idx in range(len(res['hits']['hits'])):
         sourceValue = res['hits']['hits'][idx]['_source']
         text=sourceValue['name']
-        listOfDicts.append(''.join([i if ord(i) < 128 else '' for i in text]))
-    # print (listOfDicts)
-    res=makeWebhookResult(listOfDicts)
-    res=json.dumps(res,indent=4)
-    r = make_response(res)
-    r.headers['Content-Type'] = 'application/json'
-    return r
+        listOfRating.append(sourceValue['rating'])
+        listOfImage.append(sourceValue)
+        listOfDicts.append(''.join([i if ord(i) < 128 else '' for i in text]))    # print (listOfDicts)
+    res=makeWebhookResult2(listOfImage)
+
+
+    # res=json.dumps(res,indent=4)
+    # r = make_response(res)
+    # r.headers['Content-Type'] = 'application/json'
+    # return r
     # return json.dumps(listOfDicts)
+    # res=makeWebhookResult()
+    res=json.dumps(res,indent=4)
+    res=make_response(res)
+    res.headers['Content-Type'] = 'application/json'
+    return res
     
 
 
@@ -112,18 +125,56 @@ def processRequest(req):
     #     z = makeWebhookResult(res)
     #     return z
 
-def makeWebhookResult1(data):
+
+
+
+def makeWebhookResult2(data1):
     
     # if result is None:
     #     return {}
-    n=""
-    new =""
-    for x in data:
-        n = str(x['name'])
-        new = new + n
+    # n=""
+    # new =""
+    # for x in data:
+    #     n = str(x['name'])
+    #     new = new + n
+
+    
+    speech= "Here is the list"
+    dict_of_elements=[]
+    for i in data1:
+        ducs={}
+        ducs['name']=i['name']
+        ducs['image_url']=i['image_url']
+        dict_of_elements.append(json.dumps(ducs)) 
+    return {'speech':speech,
+        "displayText":speech,
+        "data":{ 
+         'facebook':{
+            "attachment": {
+              "type": "template",
+              "payload": {
+                "template_type": "generic",
+                "elements": dict_of_elements
+              }
+            }
+        }},
+        'source':'Yelp'}
 
 
-    speech= "Here is the list " + new
+def makeWebhookResult1(data1):
+    
+    # if result is None:
+    #     return {}
+    # n=""
+    # new =""
+    # for x in data:
+    #     n = str(x['name'])
+    #     new = new + n
+
+    
+    speech= "Here is the list"
+    for i in data1:
+        speech = speech + str(i['name']) + str(i['rating']) + "\n"
     return {
     "speech": speech,
     "displayText": speech,
